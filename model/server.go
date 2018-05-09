@@ -23,6 +23,25 @@ func GetServers() (servers []Server, err error) {
 	return
 }
 
+func GetServer(name string) (server *Server, err error) {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	sis := DB["server"]
+	for _, si := range sis {
+		s, ok := si.(Server)
+		if !ok {
+			continue
+		}
+		if s.Name == name {
+			server = &s
+			return
+		}
+	}
+	server = nil
+	return
+}
+
 func AddServer(srv Server) (err error) {
 	mutex.Lock()
 	defer mutex.Unlock()

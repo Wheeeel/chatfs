@@ -25,15 +25,27 @@ func (fs *ChatFS) SetDebug(debug bool) {}
 
 // ChatFS
 func (fs *ChatFS) GetAttr(name string, context *fuse.Context) (*fuse.Attr, fuse.Status) {
-	log.Info("CALL GetAttr")
-	println("GetAttr:", name)
+	log.Info("CALL GetAttr ", name)
 	attr := new(fuse.Attr)
 	level := GetDirLevel(name)
+	// Deal with root first
 	if name == "" {
 		attr.Mode = fuse.S_IFDIR | 0755
+		return attr, fuse.OK
 	}
-	if level == LEVEL_SERVER {
+
+	if level == LEVEL_ROOT {
+		s, err := model.GetServer(name)
+		if err != nil {
+			log.Error(err)
+			return nil, fuse.EINVAL
+		}
+		if s == nil {
+			return attr, fuse.ENOENT
+		}
+
 		attr.Mode = fuse.S_IFDIR | 0755
+		return attr, fuse.OK
 	}
 	return attr, fuse.OK
 }
@@ -48,6 +60,7 @@ func (fs *ChatFS) Mkdir(name string, mode uint32, context *fuse.Context) fuse.St
 	log.Info("CALL Mkdir")
 	log.Info("Enter mkdir")
 	level := GetDirLevel(name)
+	log.Info("Level = ", level)
 	if level == LEVEL_ROOT {
 		// add the server
 		model.AddServer(model.Server{
@@ -113,6 +126,7 @@ func (fs *ChatFS) Open(name string, flags uint32, context *fuse.Context) (file n
 
 func (fs *ChatFS) OpenDir(name string, context *fuse.Context) (stream []fuse.DirEntry, status fuse.Status) {
 	log.Info("CALL OpenDir", name)
+	level := GetDirLevel(name)
 	// 1. get a list of server opened
 	if name == "" {
 		slist, err := model.GetServers()
@@ -127,6 +141,10 @@ func (fs *ChatFS) OpenDir(name string, context *fuse.Context) (stream []fuse.Dir
 
 			stream = append(stream, ent)
 		}
+		return stream, fuse.OK
+	}
+	if level == LEVEL_ROOT {
+
 	}
 	return stream, fuse.OK
 }

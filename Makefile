@@ -8,5 +8,6 @@ clean:
 	- rm chatfs
 
 run: chatfs
+	- mkdir -p /tmp/chatfs
 	- sudo umount /tmp/chatfs
 	- ./chatfs

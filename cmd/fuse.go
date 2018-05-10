@@ -19,6 +19,7 @@ const (
 	LEVEL_ROOT   = 1
 	LEVEL_SERVER = 2
 	LEVEL_CHAT   = 3
+	STR_NICKNAME = "nickname"
 )
 
 func (fs *ChatFS) SetDebug(debug bool) {}
@@ -45,6 +46,20 @@ func (fs *ChatFS) GetAttr(name string, context *fuse.Context) (*fuse.Attr, fuse.
 		}
 
 		attr.Mode = fuse.S_IFDIR | 0755
+		return attr, fuse.OK
+	}
+	if level == LEVEL_SERVER {
+		sName := GetServerName(name)
+		s, err := model.GetServer(sName)
+		log.Infof("%+v", s)
+		if err != nil {
+			log.Error(err)
+			return nil, fuse.EINVAL
+		}
+		if s == nil || s.User == "" {
+			return attr, fuse.ENOENT
+		}
+		attr.Mode = fuse.S_IFREG | 0644
 		return attr, fuse.OK
 	}
 	return attr, fuse.OK
@@ -185,6 +200,23 @@ func (fs *ChatFS) Create(name string, flags uint32, mode uint32, context *fuse.C
 	// ->
 
 	// case channel
+
+	level := GetDirLevel(name)
+	if level == LEVEL_ROOT {
+		return nil, fuse.EINVAL
+	}
+	if level == LEVEL_SERVER {
+		// the file it makes will contain username
+		fileName := GetLastLevelName(name)
+		if fileName == STR_NICKNAME {
+			// update the server config, and try to connect
+			sName := GetServerName(name)
+			server := model.Server{}
+			server.Name = sName
+			server.User = "void010"
+		}
+		return file, fuse.OK
+	}
 	return nil, fuse.ENOSYS
 }
 
